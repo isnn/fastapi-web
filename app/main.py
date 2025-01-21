@@ -3,6 +3,12 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
+from fastapi.exceptions import RequestValidationError, HTTPException
+from starlette.exceptions import HTTPException
+from fastapi.responses import JSONResponse
+from typing import Optional, Any, get_type_hints
+from fastapi import Request
+from enum import Enum
 
 import os
 import sys
@@ -29,3 +35,70 @@ app = FastAPI(
 )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    status_code = 500
+    error_message = "Internal Server Error"
+
+    print('bawah',exc)
+    if isinstance(exc, HTTPException):
+        status_code = exc.status_code
+        error_message = exc.detail
+    else:
+        error_message = str(exc)  # Use the exception's string representation
+
+    return JSONResponse(
+        status_code=status_code,  # Original status code
+        content={
+            "error": error_message,  # The error message
+            "detail": str(exc)  # Provide the exception message as detail
+        },
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    print(exc.status_code)
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": exc.detail,
+        },
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = {}
+
+    # Try to parse the incoming request data
+    try:
+        request_data = await request.json()
+    except Exception:
+        request_data = {}
+
+    print(exc)
+
+    # Extract the model used for validation from the exception
+    for error in exc.errors():
+        loc = error["loc"][-1]  # The field name in the model
+        msg = error["msg"]
+
+        # Check if it's an Enum validation error and override the message
+        if 'enum' in error.get('type', ''):
+            # Customize error message for Enum fields
+            errors[loc] = f"{loc} doesn't match allowed values."
+        else:
+            errors[loc] = msg
+
+    # Return the error response in the desired format
+    return JSONResponse(
+        status_code=400,
+        content={
+            "error": "Bad Request",
+            "detail": errors
+        },
+    )
+
+
+
