@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
-from fastapi.exceptions import RequestValidationError, HTTPException
+from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 from typing import Optional, Any, get_type_hints
@@ -36,29 +36,18 @@ app = FastAPI(
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
-@app.exception_handler(Exception)
-async def generic_exception_handler(request: Request, exc: Exception):
-    status_code = 500
-    error_message = "Internal Server Error"
-
-    print('bawah',exc)
-    if isinstance(exc, HTTPException):
-        status_code = exc.status_code
-        error_message = exc.detail
-    else:
-        error_message = str(exc)  # Use the exception's string representation
-
-    return JSONResponse(
-        status_code=status_code,  # Original status code
-        content={
-            "error": error_message,  # The error message
-            "detail": str(exc)  # Provide the exception message as detail
-        },
-    )
-
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    print(exc.status_code)
+    print(exc.detail)
+
+    if 500 <= exc.status_code < 600:  # Handle only 5xx errors
+        print(exc)
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": "Internal Server Error",
+            },
+    )
 
     return JSONResponse(
         status_code=exc.status_code,
@@ -76,8 +65,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         request_data = await request.json()
     except Exception:
         request_data = {}
-
-    print(exc)
 
     # Extract the model used for validation from the exception
     for error in exc.errors():

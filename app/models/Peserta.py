@@ -33,3 +33,10 @@ class PesertaStore(BaseModel):
 
     class Config:
         from_attributes = True  
+
+
+class PesertaUpdate(BaseModel):
+    nama: str
+
+    class Config:
+        from_attributes = True  
