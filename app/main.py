@@ -66,6 +66,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     except Exception:
         request_data = {}
 
+    print(exc)
+    
     # Extract the model used for validation from the exception
     for error in exc.errors():
         loc = error["loc"][-1]  # The field name in the model

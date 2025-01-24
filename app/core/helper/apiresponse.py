@@ -1,6 +1,7 @@
 from fastapi.responses import JSONResponse
 from sqlmodel import SQLModel
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 import uuid
 
@@ -18,6 +19,8 @@ def success_response(data: Any, message: str = "Success"):
             return obj.isoformat()  # This converts datetime to string
         elif isinstance(obj, uuid.UUID):  # Convert UUID to string
             return str(obj) 
+        elif isinstance(obj, Decimal):  # Convert Decimal to float or string
+            return str(obj)
         return obj  # Leave other types as is
 
     return JSONResponse(
