@@ -26,7 +26,9 @@ def get_sumbangan(db: SessionDep, offset: int = 0, limit: int = 100):
 def get_sumbangan(db: SessionDep, id: uuid.UUID):
 
     sumbangan = db.exec(
-        select(Sumbangan).options(selectinload(Sumbangan.peserta)).where(Sumbangan.id == id)
+        select(Sumbangan)
+        .options(selectinload(Sumbangan.peserta))
+        .where(Sumbangan.id == id)
     ).first()
 
     return success_response(sumbangan)
